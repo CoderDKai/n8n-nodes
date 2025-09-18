@@ -9,7 +9,7 @@ export class WeworkBotApi implements ICredentialType {
 	name = 'weworkBotApi';
 	displayName = '企业微信群机器人 API';
 	documentationUrl = 'https://developer.work.weixin.qq.com/document/path/91770';
-
+	
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Webhook URL',
@@ -37,7 +37,7 @@ export class WeworkBotApi implements ICredentialType {
 			body: {
 				msgtype: 'text',
 				text: {
-					content: '企业微信群机器人连接测试成功！',
+					content: '连接测试成功 - n8n企业微信群机器人节点',
 				},
 			},
 		},
@@ -47,7 +47,7 @@ export class WeworkBotApi implements ICredentialType {
 				properties: {
 					key: 'errcode',
 					value: 0,
-					message: 'Webhook URL无效或机器人配置错误',
+					message: '连接测试成功',
 				},
 			},
 		],

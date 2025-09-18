@@ -57,7 +57,7 @@ describe('WeworkBotApi', () => {
 			expect(credentials.test.request.body).toEqual({
 				msgtype: 'text',
 				text: {
-					content: '企业微信群机器人连接测试成功！'
+					content: '连接测试成功 - n8n企业微信群机器人节点'
 				}
 			});
 		});
