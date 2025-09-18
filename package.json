@@ -44,7 +44,7 @@
     "nodes": [
       "dist/nodes/ExampleNode/ExampleNode.node.js",
       "dist/nodes/HttpBin/HttpBin.node.js",
-      "dist/nodes/GitLab/GitLabApi.node.js"
+      "dist/nodes/GitLabApi/GitLabApi.node.js"
     ]
   },
   "devDependencies": {
