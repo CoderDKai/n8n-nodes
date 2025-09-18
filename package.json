@@ -1,5 +1,5 @@
 {
-  "name": "n8n-nodes-<...>",
+  "name": "n8n-nodes-gitlab-api",
   "version": "0.1.0",
   "description": "",
   "keywords": [
@@ -8,8 +8,8 @@
   "license": "MIT",
   "homepage": "",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "coderdkai",
+    "email": "coderdkai@gmail.com"
   },
   "repository": {
     "type": "git",
