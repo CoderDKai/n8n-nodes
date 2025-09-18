@@ -67,14 +67,8 @@ const projectFields: INodeProperties[] = [
       },
     },
     default: '',
-    placeholder: '1 or group/project',
-    description: 'The ID or path of the project',
-    routing: {
-      request: {
-        method: 'GET',
-        url: '=/projects/{{encodeURIComponent($value)}}',
-      },
-    },
+    placeholder: '1 or group/project or group/subgroup/project',
+    description: 'The ID or path of the project. Use numeric ID (e.g., "1") or project path (e.g., "group/project" or "group/subgroup/project").',
   },
 ];
 
@@ -93,8 +87,8 @@ const mergeRequestFields: INodeProperties[] = [
       },
     },
     default: '',
-    placeholder: '1 or group/project',
-    description: 'The ID or path of the project',
+    placeholder: '1 or group/project or group/subgroup/project',
+    description: 'The ID or path of the project. Supports multi-level paths.',
   },
   {
     displayName: 'State',
@@ -126,16 +120,6 @@ const mergeRequestFields: INodeProperties[] = [
     ],
     default: 'all',
     description: 'Filter merge requests by state',
-    routing: {
-      send: {
-        type: 'query',
-        property: 'state',
-      },
-      request: {
-        method: 'GET',
-        url: '=/projects/{{encodeURIComponent($parameter.projectId)}}/merge_requests',
-      },
-    },
   },
   {
     displayName: 'Additional Options',
@@ -160,12 +144,6 @@ const mergeRequestFields: INodeProperties[] = [
         },
         default: 20,
         description: 'Number of results per page (max 100)',
-        routing: {
-          send: {
-            type: 'query',
-            property: 'per_page',
-          },
-        },
       },
       {
         displayName: 'Page',
@@ -176,12 +154,6 @@ const mergeRequestFields: INodeProperties[] = [
         },
         default: 1,
         description: 'Page number to retrieve',
-        routing: {
-          send: {
-            type: 'query',
-            property: 'page',
-          },
-        },
       },
     ],
   },
@@ -199,12 +171,6 @@ const mergeRequestFields: INodeProperties[] = [
     },
     default: 1,
     description: 'The internal ID of the merge request',
-    routing: {
-      request: {
-        method: 'GET',
-        url: '=/projects/{{encodeURIComponent($parameter.projectId)}}/merge_requests/{{$value}}',
-      },
-    },
   },
 ];
 
