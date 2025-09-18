@@ -1,6 +1,6 @@
 # 实施计划
 
-- [-] 1. 创建GitLab API凭据类型
+- [x] 1. 创建GitLab API凭据类型
   - 实现GitLabApi.credentials.ts文件，定义GitLab实例连接和认证配置
   - 配置域名和访问令牌属性，使用密码字段类型保护敏感信息
   - 实现PRIVATE-TOKEN认证头注入机制
