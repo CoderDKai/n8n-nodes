@@ -127,3 +127,12 @@ export interface MessageHandlerConfig {
 	maxTitleLength: number;
 	maxDescriptionLength: number;
 }
+
+// API客户端配置接口
+export interface ApiClientConfig {
+	timeout: number;
+	maxRetries: number;
+	retryDelay: number;
+	retryBackoffFactor: number;
+	enableLogging: boolean;
+}
