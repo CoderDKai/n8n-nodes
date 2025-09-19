@@ -58,8 +58,8 @@ describe('WeworkBot', () => {
 			const description: INodeTypeDescription = weworkBot.description;
 
 			expect(description.icon).toEqual({
-				light: 'file:wework.svg',
-				dark: 'file:wework.svg',
+				light: 'file:weworkbot.svg',
+				dark: 'file:weworkbot.svg',
 			});
 		});
 

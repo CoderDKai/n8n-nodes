@@ -1,9 +1,15 @@
 {
   "name": "n8n-nodes-gitlab-api",
   "version": "0.1.0",
-  "description": "n8n community node for GitLab API integration",
+  "description": "n8n community node for GitLab API integration and WeWork Bot notifications",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "gitlab",
+    "wework",
+    "wechat",
+    "enterprise-wechat",
+    "bot",
+    "notifications"
   ],
   "license": "MIT",
   "homepage": "",

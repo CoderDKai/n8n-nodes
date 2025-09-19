@@ -16,7 +16,7 @@ export class WeworkBot implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: '企业微信群机器人',
 		name: 'weworkBot',
-		icon: { light: 'file:wework.svg', dark: 'file:wework.svg' },
+		icon: { light: 'file:weworkbot.svg', dark: 'file:weworkbot.svg' },
 		group: ['communication'],
 		version: 1,
 		subtitle: '={{$parameter["messageType"]}}',
