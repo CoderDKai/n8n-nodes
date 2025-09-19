@@ -1,11 +1,6 @@
-// ILogger类型定义
-interface ILogger {
-	info(message: string, data?: any): void;
-	debug(message: string, data?: any): void;
-	error(message: string, data?: any): void;
-}
 import { WeworkApiClient } from './ApiClient';
 import { ErrorHandler } from './ErrorHandler';
+import { WeworkLogger, createLogger } from './Logger';
 import { 
 	WeworkMessage, 
 	WeworkApiResponse, 
@@ -21,11 +16,11 @@ import {
  */
 export class WeworkApiService {
 	private apiClient: WeworkApiClient;
-	private logger?: ILogger;
+	private logger: WeworkLogger;
 
-	constructor(config?: Partial<ApiClientConfig>, logger?: ILogger) {
-		this.apiClient = new WeworkApiClient(config, logger);
-		this.logger = logger;
+	constructor(config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
+		this.logger = logger || createLogger('ApiService');
+		this.apiClient = new WeworkApiClient(config, this.logger.createChildLogger('Client'));
 	}
 
 	/**
@@ -35,14 +30,16 @@ export class WeworkApiService {
 		const startTime = Date.now();
 		
 		try {
-			this.logInfo('开始发送企业微信消息', {
+			this.logger.info('开始发送企业微信消息', {
 				messageType: message.msgtype,
 				timestamp: new Date().toISOString(),
 			});
 
 			// 发送前验证
+			this.logger.debug('开始消息验证', { messageType: message.msgtype });
 			this.validateMessage(message);
 			this.validateWebhookUrl(webhookUrl);
+			this.logger.debug('消息验证通过');
 
 			// 调用API
 			const response = await this.apiClient.sendMessage(webhookUrl, message);
@@ -50,9 +47,9 @@ export class WeworkApiService {
 			// 处理成功响应
 			const result = this.createSuccessResult(message, response, startTime);
 			
-			this.logInfo('消息发送成功', {
+			this.logger.info('消息发送成功', {
 				messageType: message.msgtype,
-				duration: result.timestamp - startTime,
+				duration: `${result.timestamp - startTime}ms`,
 				errcode: response.errcode,
 			});
 
@@ -61,9 +58,9 @@ export class WeworkApiService {
 			// 处理错误响应
 			const result = this.createErrorResult(message, error as Error, startTime);
 			
-			this.logError('消息发送失败', {
+			this.logger.error('消息发送失败', {
 				messageType: message.msgtype,
-				duration: result.timestamp - startTime,
+				duration: `${result.timestamp - startTime}ms`,
 				error: result.errorMessage,
 				errorCode: result.errorCode,
 			});
@@ -76,7 +73,8 @@ export class WeworkApiService {
 	 * 批量发送消息
 	 */
 	async sendMessages(webhookUrl: string, messages: WeworkMessage[]): Promise<NodeOutputData[]> {
-		this.logInfo(`开始批量发送 ${messages.length} 条消息`);
+		const batchStartTime = Date.now();
+		this.logger.info(`开始批量发送 ${messages.length} 条消息`);
 
 		const results: NodeOutputData[] = [];
 		let successCount = 0;
@@ -84,6 +82,7 @@ export class WeworkApiService {
 
 		for (let i = 0; i < messages.length; i++) {
 			const message = messages[i];
+			this.logger.debug(`处理第 ${i + 1}/${messages.length} 条消息`, { messageType: message.msgtype });
 			
 			try {
 				const result = await this.sendMessage(webhookUrl, message);
@@ -97,19 +96,30 @@ export class WeworkApiService {
 
 				// 添加延迟以避免频率限制
 				if (i < messages.length - 1) {
+					this.logger.debug('等待500ms以避免频率限制');
 					await this.sleep(500); // 500ms延迟
 				}
 			} catch (error) {
 				const errorResult = this.createErrorResult(message, error as Error, Date.now());
 				results.push(errorResult);
 				failureCount++;
+				this.logger.error(`第 ${i + 1} 条消息发送异常`, { error: (error as Error).message });
 			}
 		}
 
-		this.logInfo('批量发送完成', {
+		const batchDuration = Date.now() - batchStartTime;
+		this.logger.info('批量发送完成', {
 			total: messages.length,
 			success: successCount,
 			failure: failureCount,
+			duration: `${batchDuration}ms`,
+			averageTime: `${(batchDuration / messages.length).toFixed(1)}ms`,
+		});
+
+		// 记录性能指标
+		this.logger.logPerformance('batchSendMessages', batchDuration, {
+			messageCount: messages.length,
+			successRate: `${((successCount / messages.length) * 100).toFixed(1)}%`,
 		});
 
 		return results;
@@ -360,21 +370,10 @@ export class WeworkApiService {
 	}
 
 	/**
-	 * 记录信息日志
+	 * 获取日志记录器
 	 */
-	private logInfo(message: string, data?: any): void {
-		if (this.logger) {
-			this.logger.info(`[WeworkApiService] ${message}`, data);
-		}
-	}
-
-	/**
-	 * 记录错误日志
-	 */
-	private logError(message: string, data?: any): void {
-		if (this.logger) {
-			this.logger.error(`[WeworkApiService] ${message}`, data);
-		}
+	getLogger(): WeworkLogger {
+		return this.logger;
 	}
 
 	/**

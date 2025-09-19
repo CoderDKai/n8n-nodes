@@ -47,7 +47,7 @@ export class WeworkBotApi implements ICredentialType {
 				properties: {
 					key: 'errcode',
 					value: 0,
-					message: '连接测试成功',
+					message: 'Webhook URL无效或机器人配置错误',
 				},
 			},
 		],

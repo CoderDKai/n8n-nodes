@@ -136,3 +136,34 @@ export interface ApiClientConfig {
 	retryBackoffFactor: number;
 	enableLogging: boolean;
 }
+
+// 日志级别枚举
+export enum LogLevel {
+	DEBUG = 0,
+	INFO = 1,
+	WARN = 2,
+	ERROR = 3,
+	NONE = 4,
+}
+
+// 日志条目接口
+export interface LogEntry {
+	timestamp: string;
+	level: string;
+	message: string;
+	data?: any;
+	context?: string;
+	executionId?: string;
+	nodeId?: string;
+	workflowId?: string;
+}
+
+// 日志记录器配置接口
+export interface LoggerConfig {
+	level: LogLevel;
+	enableConsole: boolean;
+	enableStructuredLogging: boolean;
+	maxLogEntries: number;
+	includeStackTrace: boolean;
+	maskSensitiveData: boolean;
+}

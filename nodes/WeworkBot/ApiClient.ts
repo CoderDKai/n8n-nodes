@@ -1,11 +1,6 @@
-// ILogger类型定义
-interface ILogger {
-	info(message: string, data?: any): void;
-	debug(message: string, data?: any): void;
-	error(message: string, data?: any): void;
-}
 import { ErrorHandler } from './ErrorHandler';
 import { WeworkMessage, WeworkApiResponse, WeworkApiError, ApiClientConfig } from './types';
+import { WeworkLogger, createLogger } from './Logger';
 
 /**
  * 企业微信API HTTP客户端
@@ -13,9 +8,9 @@ import { WeworkMessage, WeworkApiResponse, WeworkApiError, ApiClientConfig } fro
  */
 export class WeworkApiClient {
 	private config: ApiClientConfig;
-	private logger?: ILogger;
+	private logger: WeworkLogger;
 
-	constructor(config?: Partial<ApiClientConfig>, logger?: ILogger) {
+	constructor(config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
 		this.config = {
 			timeout: 30000, // 30秒超时
 			maxRetries: 3,
@@ -24,28 +19,41 @@ export class WeworkApiClient {
 			enableLogging: true,
 			...config,
 		};
-		this.logger = logger;
+		this.logger = logger || createLogger('ApiClient');
 	}
 
 	/**
 	 * 发送消息到企业微信群
 	 */
 	async sendMessage(webhookUrl: string, message: WeworkMessage): Promise<WeworkApiResponse> {
-		this.logInfo('开始发送消息', { messageType: message.msgtype, webhookUrl: this.maskUrl(webhookUrl) });
+		const startTime = Date.now();
+		this.logger.info('开始发送消息', { 
+			messageType: message.msgtype, 
+			webhookUrl: this.maskUrl(webhookUrl) 
+		});
 
 		let lastError: Error | null = null;
 		let attempt = 0;
 
 		while (attempt <= this.config.maxRetries) {
 			try {
-				const startTime = Date.now();
+				const requestStartTime = Date.now();
 				const response = await this.makeHttpRequest(webhookUrl, message);
-				const duration = Date.now() - startTime;
+				const requestDuration = Date.now() - requestStartTime;
+				const totalDuration = Date.now() - startTime;
 
-				this.logInfo('消息发送成功', {
+				this.logger.info('消息发送成功', {
 					attempt: attempt + 1,
-					duration: `${duration}ms`,
+					requestDuration: `${requestDuration}ms`,
+					totalDuration: `${totalDuration}ms`,
 					errcode: response.errcode,
+				});
+
+				// 记录性能指标
+				this.logger.logPerformance('sendMessage', totalDuration, {
+					messageType: message.msgtype,
+					attempts: attempt + 1,
+					success: true,
 				});
 
 				return response;
@@ -53,7 +61,7 @@ export class WeworkApiClient {
 				lastError = error as Error;
 				attempt++;
 
-				this.logError('消息发送失败', {
+				this.logger.error('消息发送失败', {
 					attempt,
 					maxRetries: this.config.maxRetries,
 					error: lastError.message,
@@ -66,13 +74,15 @@ export class WeworkApiClient {
 
 				// 检查是否应该重试
 				if (!this.shouldRetry(lastError)) {
-					this.logInfo('错误不支持重试，停止重试');
+					this.logger.info('错误不支持重试，停止重试');
 					break;
 				}
 
 				// 计算重试延迟（指数退避）
 				const delay = this.config.retryDelay * Math.pow(this.config.retryBackoffFactor, attempt - 1);
-				this.logInfo(`等待 ${delay}ms 后进行第 ${attempt + 1} 次重试`);
+				
+				// 记录重试信息
+				this.logger.logRetry(attempt, this.config.maxRetries, delay, lastError);
 				
 				await this.sleep(delay);
 			}
@@ -80,7 +90,23 @@ export class WeworkApiClient {
 
 		// 所有重试都失败了，抛出最后的错误
 		const apiError = this.createApiError(lastError!);
-		this.logError('所有重试都失败，抛出错误', { error: apiError.message, code: apiError.code });
+		const totalDuration = Date.now() - startTime;
+		
+		this.logger.error('所有重试都失败，抛出错误', { 
+			error: apiError.message, 
+			code: apiError.code,
+			totalDuration: `${totalDuration}ms`,
+			totalAttempts: attempt,
+		});
+
+		// 记录性能指标
+		this.logger.logPerformance('sendMessage', totalDuration, {
+			messageType: message.msgtype,
+			attempts: attempt,
+			success: false,
+			errorCode: apiError.code,
+		});
+
 		throw apiError;
 	}
 
@@ -88,6 +114,9 @@ export class WeworkApiClient {
 	 * 测试连接
 	 */
 	async testConnection(webhookUrl: string): Promise<boolean> {
+		const startTime = Date.now();
+		this.logger.info('开始连接测试', { webhookUrl: this.maskUrl(webhookUrl) });
+		
 		try {
 			const testMessage: WeworkMessage = {
 				msgtype: 'text',
@@ -97,9 +126,22 @@ export class WeworkApiClient {
 			};
 
 			const response = await this.sendMessage(webhookUrl, testMessage);
-			return response.errcode === 0;
+			const duration = Date.now() - startTime;
+			
+			const success = response.errcode === 0;
+			this.logger.info('连接测试完成', { 
+				success, 
+				duration: `${duration}ms`,
+				errcode: response.errcode 
+			});
+			
+			return success;
 		} catch (error) {
-			this.logError('连接测试失败', { error: (error as Error).message });
+			const duration = Date.now() - startTime;
+			this.logger.error('连接测试失败', { 
+				error: (error as Error).message,
+				duration: `${duration}ms`
+			});
 			return false;
 		}
 	}
@@ -120,18 +162,16 @@ export class WeworkApiClient {
 			'User-Agent': 'n8n-wework-bot/1.0',
 		};
 
-		this.logDebug('发送HTTP请求', {
-			url: this.maskUrl(webhookUrl),
-			method: 'POST',
-			headers: requestHeaders,
-			bodySize: `${requestBody.length} bytes`,
-		});
+		// 记录API请求
+		this.logger.logApiRequest('POST', webhookUrl, requestHeaders, message);
 
 		// 创建AbortController用于超时控制
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
 		try {
+			const requestStartTime = Date.now();
+			
 			// 使用fetch发送请求
 			const response = await fetch(webhookUrl, {
 				method: 'POST',
@@ -141,13 +181,21 @@ export class WeworkApiClient {
 			});
 
 			clearTimeout(timeoutId);
+			const requestDuration = Date.now() - requestStartTime;
 
-			// 记录响应信息
-			this.logDebug('收到HTTP响应', {
-				status: response.status,
-				statusText: response.statusText,
-				headers: Object.fromEntries(response.headers.entries()),
+			// 记录API响应
+			const responseHeaders: Record<string, string> = {};
+			response.headers.forEach((value, key) => {
+				responseHeaders[key] = value;
 			});
+			
+			this.logger.logApiResponse(
+				response.status,
+				response.statusText,
+				responseHeaders,
+				undefined,
+				requestDuration
+			);
 
 			// 检查HTTP状态码
 			if (!response.ok) {
@@ -299,30 +347,10 @@ export class WeworkApiClient {
 	}
 
 	/**
-	 * 记录信息日志
+	 * 获取日志记录器
 	 */
-	private logInfo(message: string, data?: any): void {
-		if (this.config.enableLogging && this.logger) {
-			this.logger.info(`[WeworkApiClient] ${message}`, data);
-		}
-	}
-
-	/**
-	 * 记录调试日志
-	 */
-	private logDebug(message: string, data?: any): void {
-		if (this.config.enableLogging && this.logger) {
-			this.logger.debug(`[WeworkApiClient] ${message}`, data);
-		}
-	}
-
-	/**
-	 * 记录错误日志
-	 */
-	private logError(message: string, data?: any): void {
-		if (this.config.enableLogging && this.logger) {
-			this.logger.error(`[WeworkApiClient] ${message}`, data);
-		}
+	getLogger(): WeworkLogger {
+		return this.logger;
 	}
 
 	/**

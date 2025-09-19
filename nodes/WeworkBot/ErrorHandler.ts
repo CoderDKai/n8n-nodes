@@ -1,10 +1,49 @@
 import { WeworkApiError, WeworkApiResponse } from './types';
 
 /**
+ * 重试策略配置接口
+ */
+export interface RetryConfig {
+	maxRetries: number;
+	baseDelay: number;
+	maxDelay: number;
+	backoffFactor: number;
+	jitter: boolean;
+}
+
+/**
+ * 错误统计接口
+ */
+export interface ErrorStats {
+	totalErrors: number;
+	errorsByCode: Record<number, number>;
+	errorsByCategory: Record<string, number>;
+	lastErrorTime: number;
+	retryAttempts: number;
+	successfulRetries: number;
+}
+
+/**
  * 企业微信API错误处理工具类
  * 提供统一的错误处理、分类和映射功能
  */
 export class ErrorHandler {
+	private static errorStats: ErrorStats = {
+		totalErrors: 0,
+		errorsByCode: {},
+		errorsByCategory: {},
+		lastErrorTime: 0,
+		retryAttempts: 0,
+		successfulRetries: 0,
+	};
+
+	private static defaultRetryConfig: RetryConfig = {
+		maxRetries: 3,
+		baseDelay: 1000,
+		maxDelay: 30000,
+		backoffFactor: 2,
+		jitter: true,
+	};
 	/**
 	 * 从API响应创建错误对象
 	 */
@@ -391,5 +430,204 @@ export class ErrorHandler {
 		const suggestion = this.getErrorSuggestion(error);
 		
 		return `${category}: ${error.message}\n建议: ${suggestion}`;
+	}
+
+	/**
+	 * 计算重试延迟时间
+	 */
+	static calculateRetryDelay(attempt: number, config: Partial<RetryConfig> = {}): number {
+		const retryConfig = { ...this.defaultRetryConfig, ...config };
+		
+		// 基础延迟 * 指数退避
+		let delay = retryConfig.baseDelay * Math.pow(retryConfig.backoffFactor, attempt - 1);
+		
+		// 限制最大延迟
+		delay = Math.min(delay, retryConfig.maxDelay);
+		
+		// 添加随机抖动以避免雷群效应
+		if (retryConfig.jitter) {
+			const jitterRange = delay * 0.1; // 10%的抖动
+			delay += (Math.random() - 0.5) * 2 * jitterRange;
+		}
+		
+		return Math.max(delay, 0);
+	}
+
+	/**
+	 * 获取重试策略配置
+	 */
+	static getRetryConfig(error: WeworkApiError): Partial<RetryConfig> {
+		const severity = this.getErrorSeverity(error);
+		
+		switch (severity) {
+			case 'critical':
+				// 严重错误：不重试或只重试一次
+				return { maxRetries: 1, baseDelay: 5000 };
+			
+			case 'high':
+				// 高级错误：少量重试
+				return { maxRetries: 2, baseDelay: 2000 };
+			
+			case 'medium':
+				// 中级错误：正常重试
+				return { maxRetries: 3, baseDelay: 1000 };
+			
+			case 'low':
+				// 低级错误：更多重试
+				return { maxRetries: 5, baseDelay: 500 };
+			
+			default:
+				return this.defaultRetryConfig;
+		}
+	}
+
+	/**
+	 * 记录错误统计
+	 */
+	static recordError(error: WeworkApiError, isRetry: boolean = false): void {
+		this.errorStats.totalErrors++;
+		this.errorStats.lastErrorTime = Date.now();
+		
+		// 按错误码统计
+		this.errorStats.errorsByCode[error.code] = (this.errorStats.errorsByCode[error.code] || 0) + 1;
+		
+		// 按错误分类统计
+		const category = this.getErrorCategory(error);
+		this.errorStats.errorsByCategory[category] = (this.errorStats.errorsByCategory[category] || 0) + 1;
+		
+		// 重试统计
+		if (isRetry) {
+			this.errorStats.retryAttempts++;
+		}
+	}
+
+	/**
+	 * 记录成功的重试
+	 */
+	static recordSuccessfulRetry(): void {
+		this.errorStats.successfulRetries++;
+	}
+
+	/**
+	 * 获取错误统计信息
+	 */
+	static getErrorStats(): ErrorStats {
+		return { ...this.errorStats };
+	}
+
+	/**
+	 * 重置错误统计
+	 */
+	static resetErrorStats(): void {
+		this.errorStats = {
+			totalErrors: 0,
+			errorsByCode: {},
+			errorsByCategory: {},
+			lastErrorTime: 0,
+			retryAttempts: 0,
+			successfulRetries: 0,
+		};
+	}
+
+	/**
+	 * 检查是否应该启用断路器模式
+	 */
+	static shouldEnableCircuitBreaker(): boolean {
+		const stats = this.errorStats;
+		const now = Date.now();
+		const fiveMinutesAgo = now - 5 * 60 * 1000;
+		
+		// 如果最近5分钟内没有错误，不启用断路器
+		if (stats.lastErrorTime < fiveMinutesAgo) {
+			return false;
+		}
+		
+		// 如果错误率过高，启用断路器
+		const totalRequests = stats.totalErrors + stats.successfulRetries;
+		if (totalRequests > 10) {
+			const errorRate = stats.totalErrors / totalRequests;
+			return errorRate > 0.5; // 错误率超过50%
+		}
+		
+		return false;
+	}
+
+	/**
+	 * 创建错误上下文信息
+	 */
+	static createErrorContext(error: WeworkApiError, additionalInfo?: Record<string, any>): Record<string, any> {
+		return {
+			errorCode: error.code,
+			errorMessage: error.message,
+			errorCategory: this.getErrorCategory(error),
+			errorSeverity: this.getErrorSeverity(error),
+			isRetryable: this.isRetryableError(error),
+			suggestion: this.getErrorSuggestion(error),
+			timestamp: new Date().toISOString(),
+			...additionalInfo,
+		};
+	}
+
+	/**
+	 * 验证错误对象
+	 */
+	static validateError(error: any): error is WeworkApiError {
+		return error instanceof WeworkApiError && 
+			   typeof error.code === 'number' && 
+			   typeof error.message === 'string';
+	}
+
+	/**
+	 * 包装异步操作，自动处理错误和重试
+	 */
+	static async withRetry<T>(
+		operation: () => Promise<T>,
+		config: Partial<RetryConfig> = {},
+		onRetry?: (attempt: number, error: WeworkApiError) => void
+	): Promise<T> {
+		const retryConfig = { ...this.defaultRetryConfig, ...config };
+		let lastError: WeworkApiError | null = null;
+		
+		for (let attempt = 1; attempt <= retryConfig.maxRetries + 1; attempt++) {
+			try {
+				const result = await operation();
+				
+				// 如果之前有重试，记录成功的重试
+				if (attempt > 1) {
+					this.recordSuccessfulRetry();
+				}
+				
+				return result;
+			} catch (error) {
+				// 转换为WeworkApiError
+				lastError = error instanceof WeworkApiError 
+					? error 
+					: this.createGenericError(error as Error);
+				
+				// 记录错误
+				this.recordError(lastError, attempt > 1);
+				
+				// 如果是最后一次尝试，直接抛出错误
+				if (attempt > retryConfig.maxRetries) {
+					break;
+				}
+				
+				// 检查是否应该重试
+				if (!this.isRetryableError(lastError)) {
+					break;
+				}
+				
+				// 调用重试回调
+				if (onRetry) {
+					onRetry(attempt, lastError);
+				}
+				
+				// 等待重试延迟
+				const delay = this.calculateRetryDelay(attempt, retryConfig);
+				await new Promise(resolve => setTimeout(resolve, delay));
+			}
+		}
+		
+		throw lastError!;
 	}
 }

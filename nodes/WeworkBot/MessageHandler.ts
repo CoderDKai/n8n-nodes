@@ -79,7 +79,8 @@ export class TextMessageHandler extends BaseMessageHandler {
 		// 处理@提及用户功能
 		if (inputData.mentionedUsers && inputData.mentionedUsers.length > 0) {
 			// 过滤掉空值和重复值
-			const uniqueUsers = [...new Set(inputData.mentionedUsers.filter(user => !Utils.isEmptyOrWhitespace(user)))];
+			const filteredUsers = inputData.mentionedUsers.filter(user => !Utils.isEmptyOrWhitespace(user));
+			const uniqueUsers = Array.from(new Set(filteredUsers));
 			if (uniqueUsers.length > 0) {
 				message.text.mentioned_list = uniqueUsers;
 			}
@@ -88,10 +89,10 @@ export class TextMessageHandler extends BaseMessageHandler {
 		// 处理@提及手机号功能
 		if (inputData.mentionedMobiles && inputData.mentionedMobiles.length > 0) {
 			// 过滤掉空值、重复值和无效手机号
-			const uniqueMobiles = [...new Set(inputData.mentionedMobiles
+			const filteredMobiles = inputData.mentionedMobiles
 				.filter(mobile => !Utils.isEmptyOrWhitespace(mobile))
-				.filter(mobile => /^1[3-9]\d{9}$/.test(mobile))
-			)];
+				.filter(mobile => /^1[3-9]\d{9}$/.test(mobile));
+			const uniqueMobiles = Array.from(new Set(filteredMobiles));
 			if (uniqueMobiles.length > 0) {
 				message.text.mentioned_mobile_list = uniqueMobiles;
 			}
