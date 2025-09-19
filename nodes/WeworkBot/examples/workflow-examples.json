@@ -1,0 +1,491 @@
+{
+  "workflows": [
+    {
+      "name": "每日数据报告",
+      "description": "每天定时发送数据统计报告到企业微信群",
+      "nodes": [
+        {
+          "id": "schedule-trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "定时触发器",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 18 * * *"
+                }
+              ]
+            }
+          },
+          "position": [100, 200]
+        },
+        {
+          "id": "http-request",
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "获取数据统计",
+          "parameters": {
+            "url": "https://api.example.com/daily-stats",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": [300, 200]
+        },
+        {
+          "id": "function",
+          "type": "n8n-nodes-base.function",
+          "name": "格式化报告",
+          "parameters": {
+            "functionCode": "const stats = items[0].json;\nconst report = `# 📊 每日数据报告\\n\\n**日期**: ${new Date().toLocaleDateString('zh-CN')}\\n**总用户数**: ${stats.totalUsers.toLocaleString()}\\n**新增用户**: ${stats.newUsers.toLocaleString()}\\n**活跃用户**: ${stats.activeUsers.toLocaleString()}\\n**收入**: ¥${stats.revenue.toLocaleString()}\\n\\n---\\n\\n${stats.trend > 0 ? '📈' : '📉'} 相比昨日${stats.trend > 0 ? '增长' : '下降'} ${Math.abs(stats.trend)}%`;\n\nreturn [{\n  json: {\n    markdownContent: report\n  }\n}];"
+          },
+          "position": [500, 200]
+        },
+        {
+          "id": "wework-bot",
+          "type": "weworkBot",
+          "name": "发送报告",
+          "parameters": {
+            "messageType": "markdown",
+            "markdownContent": "={{$json.markdownContent}}",
+            "mentionedUsers": "@all"
+          },
+          "credentials": {
+            "weworkBotApi": "daily-report-bot"
+          },
+          "position": [700, 200]
+        }
+      ],
+      "connections": {
+        "定时触发器": {
+          "main": [
+            [
+              {
+                "node": "获取数据统计",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "获取数据统计": {
+          "main": [
+            [
+              {
+                "node": "格式化报告",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "格式化报告": {
+          "main": [
+            [
+              {
+                "node": "发送报告",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "系统错误监控",
+      "description": "监控系统错误并及时通知相关人员",
+      "nodes": [
+        {
+          "id": "webhook-trigger",
+          "type": "n8n-nodes-base.webhook",
+          "name": "错误Webhook",
+          "parameters": {
+            "path": "system-error",
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "position": [100, 200]
+        },
+        {
+          "id": "if-condition",
+          "type": "n8n-nodes-base.if",
+          "name": "判断错误级别",
+          "parameters": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json.level}}",
+                  "operation": "equal",
+                  "value2": "critical"
+                }
+              ]
+            }
+          },
+          "position": [300, 200]
+        },
+        {
+          "id": "wework-critical",
+          "type": "weworkBot",
+          "name": "紧急告警",
+          "parameters": {
+            "messageType": "text",
+            "content": "🚨 **紧急告警** 🚨\n\n系统: {{$json.system}}\n错误: {{$json.message}}\n时间: {{$json.timestamp}}\n\n请立即处理！",
+            "mentionedUsers": "admin1,admin2,oncall-engineer"
+          },
+          "credentials": {
+            "weworkBotApi": "alert-bot"
+          },
+          "position": [500, 150]
+        },
+        {
+          "id": "wework-normal",
+          "type": "weworkBot",
+          "name": "普通通知",
+          "parameters": {
+            "messageType": "markdown",
+            "markdownContent": "⚠️ **系统告警**\n\n**系统**: {{$json.system}}\n**错误**: {{$json.message}}\n**级别**: {{$json.level}}\n**时间**: {{$json.timestamp}}\n\n请关注处理。"
+          },
+          "credentials": {
+            "weworkBotApi": "alert-bot"
+          },
+          "position": [500, 250]
+        },
+        {
+          "id": "webhook-response",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "name": "响应Webhook",
+          "parameters": {
+            "responseBody": "{\"status\": \"received\"}",
+            "options": {}
+          },
+          "position": [700, 200]
+        }
+      ],
+      "connections": {
+        "错误Webhook": {
+          "main": [
+            [
+              {
+                "node": "判断错误级别",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "判断错误级别": {
+          "main": [
+            [
+              {
+                "node": "紧急告警",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "普通通知",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "紧急告警": {
+          "main": [
+            [
+              {
+                "node": "响应Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "普通通知": {
+          "main": [
+            [
+              {
+                "node": "响应Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "文件处理完成通知",
+      "description": "文件处理完成后发送包含结果图表的图文消息",
+      "nodes": [
+        {
+          "id": "file-trigger",
+          "type": "n8n-nodes-base.localFileTrigger",
+          "name": "文件监控",
+          "parameters": {
+            "path": "/data/input",
+            "watchFor": "file"
+          },
+          "position": [100, 200]
+        },
+        {
+          "id": "process-file",
+          "type": "n8n-nodes-base.function",
+          "name": "处理文件",
+          "parameters": {
+            "functionCode": "// 模拟文件处理逻辑\nconst fileName = items[0].json.name;\nconst fileSize = items[0].json.size;\n\n// 模拟处理结果\nconst processResult = {\n  fileName,\n  fileSize,\n  recordsProcessed: Math.floor(Math.random() * 10000) + 1000,\n  processingTime: Math.floor(Math.random() * 300) + 30,\n  success: true\n};\n\nreturn [{ json: processResult }];"
+          },
+          "position": [300, 200]
+        },
+        {
+          "id": "generate-chart",
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "生成图表",
+          "parameters": {
+            "url": "https://quickchart.io/chart",
+            "method": "POST",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "chart",
+                  "value": "{\n  \"type\": \"bar\",\n  \"data\": {\n    \"labels\": [\"处理记录数\", \"处理时间(秒)\"],\n    \"datasets\": [{\n      \"label\": \"处理结果\",\n      \"data\": [{{$json.recordsProcessed}}, {{$json.processingTime}}],\n      \"backgroundColor\": [\"#36A2EB\", \"#FF6384\"]\n    }]\n  },\n  \"options\": {\n    \"title\": {\n      \"display\": true,\n      \"text\": \"文件处理结果\"\n    }\n  }\n}"
+                }
+              ]
+            },
+            "responseFormat": "binaryData"
+          },
+          "position": [500, 200]
+        },
+        {
+          "id": "upload-image",
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "上传图片",
+          "parameters": {
+            "url": "https://api.example.com/upload",
+            "method": "POST",
+            "sendBinaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": [700, 200]
+        },
+        {
+          "id": "wework-news",
+          "type": "weworkBot",
+          "name": "发送处理结果",
+          "parameters": {
+            "messageType": "news",
+            "articles": {
+              "article": [
+                {
+                  "title": "文件处理完成：{{$('处理文件').item.json.fileName}}",
+                  "description": "成功处理 {{$('处理文件').item.json.recordsProcessed}} 条记录，耗时 {{$('处理文件').item.json.processingTime}} 秒",
+                  "url": "https://dashboard.example.com/files/{{$('处理文件').item.json.fileName}}",
+                  "picurl": "{{$json.imageUrl}}"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "weworkBotApi": "file-processing-bot"
+          },
+          "position": [900, 200]
+        }
+      ],
+      "connections": {
+        "文件监控": {
+          "main": [
+            [
+              {
+                "node": "处理文件",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "处理文件": {
+          "main": [
+            [
+              {
+                "node": "生成图表",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "生成图表": {
+          "main": [
+            [
+              {
+                "node": "上传图片",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "上传图片": {
+          "main": [
+            [
+              {
+                "node": "发送处理结果",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "批量用户通知",
+      "description": "向不同用户发送个性化通知消息",
+      "nodes": [
+        {
+          "id": "manual-trigger",
+          "type": "n8n-nodes-base.manualTrigger",
+          "name": "手动触发",
+          "parameters": {},
+          "position": [100, 200]
+        },
+        {
+          "id": "get-users",
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "获取用户列表",
+          "parameters": {
+            "url": "https://api.example.com/users",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": [300, 200]
+        },
+        {
+          "id": "split-in-batches",
+          "type": "n8n-nodes-base.splitInBatches",
+          "name": "分批处理",
+          "parameters": {
+            "batchSize": 10
+          },
+          "position": [500, 200]
+        },
+        {
+          "id": "wework-batch",
+          "type": "weworkBot",
+          "name": "批量通知",
+          "parameters": {
+            "messageType": "text",
+            "content": "Hi {{$json.name}}，您有新的任务需要处理：\n\n任务: {{$json.taskTitle}}\n截止时间: {{$json.deadline}}\n优先级: {{$json.priority}}\n\n请及时查看处理。",
+            "mentionedUsers": "{{$json.weworkUserId}}"
+          },
+          "credentials": {
+            "weworkBotApi": "user-notification-bot"
+          },
+          "position": [700, 200]
+        },
+        {
+          "id": "wait",
+          "type": "n8n-nodes-base.wait",
+          "name": "等待间隔",
+          "parameters": {
+            "amount": 2,
+            "unit": "seconds"
+          },
+          "position": [900, 200]
+        }
+      ],
+      "connections": {
+        "手动触发": {
+          "main": [
+            [
+              {
+                "node": "获取用户列表",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "获取用户列表": {
+          "main": [
+            [
+              {
+                "node": "分批处理",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "分批处理": {
+          "main": [
+            [
+              {
+                "node": "批量通知",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "批量通知": {
+          "main": [
+            [
+              {
+                "node": "等待间隔",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "等待间隔": {
+          "main": [
+            [
+              {
+                "node": "分批处理",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "credentials": [
+    {
+      "name": "daily-report-bot",
+      "type": "weworkBotApi",
+      "description": "用于发送每日报告的企业微信群机器人",
+      "data": {
+        "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_DAILY_REPORT_KEY"
+      }
+    },
+    {
+      "name": "alert-bot",
+      "type": "weworkBotApi",
+      "description": "用于发送系统告警的企业微信群机器人",
+      "data": {
+        "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_ALERT_KEY"
+      }
+    },
+    {
+      "name": "file-processing-bot",
+      "type": "weworkBotApi",
+      "description": "用于发送文件处理结果的企业微信群机器人",
+      "data": {
+        "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_FILE_PROCESSING_KEY"
+      }
+    },
+    {
+      "name": "user-notification-bot",
+      "type": "weworkBotApi",
+      "description": "用于发送用户通知的企业微信群机器人",
+      "data": {
+        "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_USER_NOTIFICATION_KEY"
+      }
+    }
+  ]
+}
