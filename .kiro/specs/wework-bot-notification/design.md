@@ -1,8 +1,8 @@
-# 企业微信群机器人通知节点设计文档
+# WeWorkBot设计文档
 
 ## 概述
 
-企业微信群机器人通知节点是一个n8n自定义节点，用于向企业微信群聊发送各种类型的消息通知。该节点通过企业微信群机器人的webhook API实现消息推送功能，支持文本、Markdown、图片、图文和文件等多种消息类型。
+WeWorkBot是一个n8n自定义节点，用于向企业微信群聊发送各种类型的消息通知。该节点通过企业微信群机器人的webhook API实现消息推送功能，支持文本、Markdown、图片、图文和文件等多种消息类型。
 
 ## 架构
 
@@ -10,7 +10,7 @@
 
 ```mermaid
 graph TB
-    A[n8n工作流] --> B[企业微信群机器人节点]
+    A[n8n工作流] --> B[WeWorkBot]
     B --> C[消息类型处理器]
     C --> D[HTTP客户端]
     D --> E[企业微信API]
@@ -51,7 +51,7 @@ graph TB
 ```typescript
 export class WeworkBotNotification implements INodeType {
   description: INodeTypeDescription = {
-    displayName: '企业微信群机器人',
+    displayName: 'WeWorkBot',
     name: 'weworkBotNotification',
     icon: { light: 'file:wework.svg', dark: 'file:wework.svg' },
     group: ['communication'],
@@ -59,7 +59,7 @@ export class WeworkBotNotification implements INodeType {
     subtitle: '={{$parameter["messageType"]}}',
     description: '向企业微信群发送通知消息',
     defaults: {
-      name: '企业微信群机器人',
+      name: 'WeWorkBot',
     },
     inputs: ['main'],
     outputs: ['main'],
@@ -85,7 +85,7 @@ export class WeworkBotNotification implements INodeType {
 ```typescript
 export class WeworkBotApi implements ICredentialType {
   name = 'weworkBotApi';
-  displayName = '企业微信群机器人API';
+  displayName = 'WeWorkBot API';
   documentationUrl = 'https://developer.work.weixin.qq.com/document/path/91770';
   
   properties: INodeProperties[] = [

@@ -14,7 +14,7 @@ import { createLogger, LogLevel } from './Logger';
 
 export class WeworkBot implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: '企业微信群机器人',
+		displayName: 'WeWorkBot',
 		name: 'weworkBot',
 		icon: { light: 'file:weworkbot.svg', dark: 'file:weworkbot.svg' },
 		group: ['communication'],
@@ -22,7 +22,7 @@ export class WeworkBot implements INodeType {
 		subtitle: '={{$parameter["messageType"]}}',
 		description: '向企业微信群发送通知消息',
 		defaults: {
-			name: '企业微信群机器人',
+			name: 'WeWorkBot',
 		},
 		inputs: [NodeConnectionType.Main],
 		outputs: [NodeConnectionType.Main],

@@ -4,7 +4,7 @@ import { WeworkLogger, createLogger } from './Logger';
 
 /**
  * 企业微信API HTTP客户端
- * 负责处理与企业微信群机器人API的HTTP通信
+ * 负责处理与WeWorkBot API的HTTP通信
  */
 export class WeworkApiClient {
 	private config: ApiClientConfig;
@@ -121,7 +121,7 @@ export class WeworkApiClient {
 			const testMessage: WeworkMessage = {
 				msgtype: 'text',
 				text: {
-					content: '连接测试成功 - 企业微信群机器人',
+					content: '连接测试成功 - WeWorkBot',
 				},
 			};
 

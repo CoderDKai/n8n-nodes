@@ -218,7 +218,7 @@ export class ErrorHandler {
 			61450: '系统错误(system error)',
 			61500: '日期格式错误',
 
-			// 企业微信群机器人特有错误码
+			// WeWorkBot特有错误码
 			93000: 'webhook地址无效或已过期，请重新配置群机器人',
 			300001: '缺少参数',
 			300002: 'https请求',

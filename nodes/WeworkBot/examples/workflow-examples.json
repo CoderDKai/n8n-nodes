@@ -458,7 +458,7 @@
     {
       "name": "daily-report-bot",
       "type": "weworkBotApi",
-      "description": "用于发送每日报告的企业微信群机器人",
+      "description": "用于发送每日报告的WeWorkBot",
       "data": {
         "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_DAILY_REPORT_KEY"
       }
@@ -466,7 +466,7 @@
     {
       "name": "alert-bot",
       "type": "weworkBotApi",
-      "description": "用于发送系统告警的企业微信群机器人",
+      "description": "用于发送系统告警的WeWorkBot",
       "data": {
         "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_ALERT_KEY"
       }
@@ -474,7 +474,7 @@
     {
       "name": "file-processing-bot",
       "type": "weworkBotApi",
-      "description": "用于发送文件处理结果的企业微信群机器人",
+      "description": "用于发送文件处理结果的WeWorkBot",
       "data": {
         "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_FILE_PROCESSING_KEY"
       }
@@ -482,7 +482,7 @@
     {
       "name": "user-notification-bot",
       "type": "weworkBotApi",
-      "description": "用于发送用户通知的企业微信群机器人",
+      "description": "用于发送用户通知的WeWorkBot",
       "data": {
         "webhookUrl": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_USER_NOTIFICATION_KEY"
       }

@@ -10,7 +10,7 @@ describe('WeworkBotApi', () => {
 	describe('基本属性', () => {
 		it('应该有正确的名称和显示名称', () => {
 			expect(credentials.name).toBe('weworkBotApi');
-			expect(credentials.displayName).toBe('企业微信群机器人 API');
+			expect(credentials.displayName).toBe('WeWorkBot API');
 		});
 
 		it('应该有正确的文档URL', () => {
@@ -57,7 +57,7 @@ describe('WeworkBotApi', () => {
 			expect(credentials.test.request.body).toEqual({
 				msgtype: 'text',
 				text: {
-					content: '连接测试成功 - n8n企业微信群机器人节点'
+					content: '连接测试成功 - n8n WeWorkBot'
 				}
 			});
 		});

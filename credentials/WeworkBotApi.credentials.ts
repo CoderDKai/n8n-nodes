@@ -7,7 +7,7 @@ import {
 
 export class WeworkBotApi implements ICredentialType {
 	name = 'weworkBotApi';
-	displayName = '企业微信群机器人 API';
+	displayName = 'WeWorkBot API';
 	documentationUrl = 'https://developer.work.weixin.qq.com/document/path/91770';
 	
 	properties: INodeProperties[] = [
@@ -37,7 +37,7 @@ export class WeworkBotApi implements ICredentialType {
 			body: {
 				msgtype: 'text',
 				text: {
-					content: '连接测试成功 - n8n企业微信群机器人节点',
+					content: '连接测试成功 - n8n WeWorkBot',
 				},
 			},
 		},

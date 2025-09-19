@@ -30,7 +30,7 @@ describe('WeworkBot', () => {
 		it('应该有正确的节点描述配置', () => {
 			const description: INodeTypeDescription = weworkBot.description;
 
-			expect(description.displayName).toBe('企业微信群机器人');
+			expect(description.displayName).toBe('WeWorkBot');
 			expect(description.name).toBe('weworkBot');
 			expect(description.group).toContain('communication');
 			expect(description.version).toBe(1);
