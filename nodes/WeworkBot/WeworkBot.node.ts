@@ -28,7 +28,7 @@ export class WeworkBot implements INodeType {
 		// 创建日志记录器
 		const logger = createLogger('WeworkBot', {
 			level: LogLevel.INFO,
-			enableConsole: true,
+			enableConsole: false,
 			enableStructuredLogging: true,
 			includeStackTrace: true,
 			maskSensitiveData: true,

@@ -18,7 +18,7 @@ export class WeworkLogger {
 		this.context = context;
 		this.config = {
 			level: LogLevel.INFO,
-			enableConsole: true,
+			enableConsole: false,
 			enableStructuredLogging: true,
 			maxLogEntries: 1000,
 			includeStackTrace: false,
