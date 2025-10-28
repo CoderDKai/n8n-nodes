@@ -77,27 +77,35 @@ export const WeworkBotNodeDescription: INodeTypeDescription = {
 			displayName: '@提及用户',
 			name: 'mentionedUsers',
 			type: 'string',
+			typeOptions: {
+				multipleValues: true,
+				multipleValueButtonText: '添加用户',
+			},
 			displayOptions: {
 				show: {
 					messageType: ['text'],
 				},
 			},
-			default: '',
-			placeholder: '@all 或用户ID，多个用逗号分隔',
-			description: '要@提及的用户，使用@all提及所有人，或输入具体用户ID',
+			default: [],
+			placeholder: '@all',
+			description: '要@提及的用户，使用@all提及所有人，或逐个输入具体用户ID',
 		},
 		{
 			displayName: '@提及手机号',
 			name: 'mentionedMobiles',
 			type: 'string',
+			typeOptions: {
+				multipleValues: true,
+				multipleValueButtonText: '添加手机号',
+			},
 			displayOptions: {
 				show: {
 					messageType: ['text'],
 				},
 			},
-			default: '',
-			placeholder: '手机号，多个用逗号分隔',
-			description: '要@提及的用户手机号，多个手机号用逗号分隔',
+			default: [],
+			placeholder: '13800000000',
+			description: '要@提及的用户手机号，逐个输入，系统会自动去重',
 		},
 		{
 			displayName: 'Markdown内容',
@@ -252,4 +260,3 @@ export const WeworkBotNodeDescription: INodeTypeDescription = {
 		},
 	],
 };
-

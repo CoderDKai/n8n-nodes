@@ -76,21 +76,16 @@ export class WeworkBot implements INodeType {
 				switch (messageType) {
 					case MessageType.TEXT:
 						inputData.content = this.getNodeParameter('content', itemIndex) as string;
-						
-						// 处理@提及用户
-						const mentionedUsersStr = this.getNodeParameter('mentionedUsers', itemIndex, '') as string;
-						if (mentionedUsersStr) {
-							inputData.mentionedUsers = mentionedUsersStr
-								.split(',')
+						const mentionedUsers = this.getNodeParameter('mentionedUsers', itemIndex, []) as string[];
+						if (Array.isArray(mentionedUsers) && mentionedUsers.length > 0) {
+							inputData.mentionedUsers = mentionedUsers
 								.map(user => user.trim())
 								.filter(user => user.length > 0);
 						}
 
-						// 处理@提及手机号
-						const mentionedMobilesStr = this.getNodeParameter('mentionedMobiles', itemIndex, '') as string;
-						if (mentionedMobilesStr) {
-							inputData.mentionedMobiles = mentionedMobilesStr
-								.split(',')
+						const mentionedMobiles = this.getNodeParameter('mentionedMobiles', itemIndex, []) as string[];
+						if (Array.isArray(mentionedMobiles) && mentionedMobiles.length > 0) {
+							inputData.mentionedMobiles = mentionedMobiles
 								.map(mobile => mobile.trim())
 								.filter(mobile => mobile.length > 0);
 						}
