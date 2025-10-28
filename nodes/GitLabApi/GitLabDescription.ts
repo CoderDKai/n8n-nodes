@@ -157,6 +157,37 @@ const mergeRequestFields: INodeProperties[] = [
       },
     ],
   },
+  {
+    displayName: 'Return All',
+    name: 'returnAll',
+    type: 'boolean',
+    default: true,
+    displayOptions: {
+      show: {
+        resource: ['mergeRequest'],
+        operation: ['getAll'],
+      },
+    },
+    description: 'Whether to return all merge requests or limit the results',
+  },
+  {
+    displayName: 'Limit',
+    name: 'limit',
+    type: 'number',
+    typeOptions: {
+      minValue: 1,
+      maxValue: 200,
+    },
+    default: 50,
+    displayOptions: {
+      show: {
+        resource: ['mergeRequest'],
+        operation: ['getAll'],
+        returnAll: [false],
+      },
+    },
+    description: 'Max number of merge requests to return',
+  },
   // 获取单个合并请求
   {
     displayName: 'Merge Request IID',

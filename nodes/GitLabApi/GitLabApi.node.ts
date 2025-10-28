@@ -111,10 +111,11 @@ export class GitLabApi implements INodeType {
 								}
 							);
 
-							returnData.push({
-								json: responseData,
-								pairedItem: { item: i },
-							});
+						const executionData = this.helpers.returnJsonArray(responseData as any[]);
+						executionData.forEach(item => {
+							item.pairedItem = { item: i };
+							returnData.push(item);
+						});
 						} catch (error: any) {
 							// 处理特定的GitLab API错误
 							if (error.httpCode === 404) {
@@ -149,6 +150,8 @@ export class GitLabApi implements INodeType {
 						const projectId = this.getNodeParameter('projectId', i) as string;
 						const state = this.getNodeParameter('state', i) as string;
 						const additionalOptions = this.getNodeParameter('additionalOptions', i, {}) as any;
+						const returnAll = this.getNodeParameter('returnAll', i, true) as boolean;
+						const limit = returnAll ? undefined : (this.getNodeParameter('limit', i) as number);
 
 						// 验证项目ID格式
 						if (!projectId || projectId.trim() === '') {
@@ -193,10 +196,13 @@ export class GitLabApi implements INodeType {
 								}
 							);
 
-							returnData.push({
-								json: responseData,
-								pairedItem: { item: i },
-							});
+						const items = Array.isArray(responseData) ? responseData : [responseData];
+						const slicedItems = returnAll ? items : items.slice(0, limit ?? items.length);
+						const executionData = this.helpers.returnJsonArray(slicedItems as any[]);
+						executionData.forEach(item => {
+							item.pairedItem = { item: i };
+							returnData.push(item);
+						});
 						} catch (error: any) {
 							if (error.httpCode === 404) {
 								throw new NodeOperationError(
