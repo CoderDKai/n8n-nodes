@@ -1,3 +1,5 @@
+import type { IExecuteFunctions } from 'n8n-workflow';
+
 import { ErrorHandler } from './ErrorHandler';
 import { WeworkMessage, WeworkApiResponse, WeworkApiError, ApiClientConfig } from './types';
 import { WeworkLogger, createLogger } from './Logger';
@@ -9,8 +11,9 @@ import { WeworkLogger, createLogger } from './Logger';
 export class WeworkApiClient {
 	private config: ApiClientConfig;
 	private logger: WeworkLogger;
+	private executeFunctions?: IExecuteFunctions;
 
-	constructor(config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
+	constructor(executeFunctions?: IExecuteFunctions, config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
 		this.config = {
 			timeout: 30000, // 30秒超时
 			maxRetries: 3,
@@ -20,6 +23,7 @@ export class WeworkApiClient {
 			...config,
 		};
 		this.logger = logger || createLogger('ApiClient');
+		this.executeFunctions = executeFunctions;
 	}
 
 	/**
@@ -150,84 +154,89 @@ export class WeworkApiClient {
 	 * 执行HTTP请求
 	 */
 	private async makeHttpRequest(webhookUrl: string, message: WeworkMessage): Promise<WeworkApiResponse> {
-		// 验证URL格式
+		if (!this.executeFunctions) {
+			throw new Error('HTTP helpers 未配置');
+		}
+
 		if (!this.isValidWebhookUrl(webhookUrl)) {
 			throw new Error('无效的webhook URL格式');
 		}
 
-		// 准备请求数据
-		const requestBody = JSON.stringify(message);
 		const requestHeaders = {
 			'Content-Type': 'application/json',
 			'User-Agent': 'n8n-wework-bot/1.0',
 		};
 
-		// 记录API请求
 		this.logger.logApiRequest('POST', webhookUrl, requestHeaders, message);
 
-		// 创建AbortController用于超时控制
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+		const requestStartTime = Date.now();
 
 		try {
-			const requestStartTime = Date.now();
-			
-			// 使用fetch发送请求
-			const response = await fetch(webhookUrl, {
+			const response = (await this.executeFunctions.helpers.httpRequest({
 				method: 'POST',
+				url: webhookUrl,
 				headers: requestHeaders,
-				body: requestBody,
-				signal: controller.signal,
-			});
+				body: message,
+				json: true,
+				timeout: this.config.timeout,
+				returnFullResponse: true,
+			})) as {
+				statusCode?: number;
+				statusMessage?: string;
+				headers?: Record<string, string>;
+				body: WeworkApiResponse;
+			};
 
-			clearTimeout(timeoutId);
 			const requestDuration = Date.now() - requestStartTime;
 
-			// 记录API响应
-			const responseHeaders: Record<string, string> = {};
-			response.headers.forEach((value, key) => {
-				responseHeaders[key] = value;
-			});
-			
 			this.logger.logApiResponse(
-				response.status,
-				response.statusText,
-				responseHeaders,
-				undefined,
-				requestDuration
+				response.statusCode ?? 200,
+				response.statusMessage ?? 'OK',
+				response.headers ?? {},
+				response.body,
+				requestDuration,
 			);
 
-			// 检查HTTP状态码
-			if (!response.ok) {
-				throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
-			}
+			const apiResponse = this.parseApiResponse(response.body);
 
-			// 解析响应JSON
-			const responseData = await response.json();
-			
-			// 验证响应格式
-			const apiResponse = this.parseApiResponse(responseData);
-			
-			// 检查API错误码
 			if (apiResponse.errcode !== 0) {
 				throw this.createApiErrorFromResponse(apiResponse);
 			}
 
 			return apiResponse;
 		} catch (error) {
-			clearTimeout(timeoutId);
-			
-			// 处理不同类型的错误
-			if (error instanceof Error) {
-				if (error.name === 'AbortError') {
-					throw new Error(`请求超时 (${this.config.timeout}ms)`);
-				}
-				if (error.message.includes('fetch')) {
-					throw new Error(`网络连接失败: ${error.message}`);
+			const duration = Date.now() - requestStartTime;
+			let processedError: Error = error instanceof Error ? error : new Error('企业微信API请求失败');
+
+			const response = (error as any)?.response;
+			if (response) {
+				const statusCode = response.statusCode ?? response.status ?? 500;
+				const statusMessage = response.statusMessage ?? response.statusText ?? processedError.message;
+				const headers = response.headers ?? {};
+				const body = response.body;
+
+				this.logger.logApiResponse(statusCode, statusMessage, headers, body, duration);
+
+				if (body && typeof body === 'object') {
+					try {
+						const apiResponse = this.parseApiResponse(body);
+						processedError = this.createApiErrorFromResponse(apiResponse);
+					} catch (parseError) {
+						processedError = processedError instanceof Error ? processedError : new Error(String(parseError));
+					}
 				}
 			}
-			
-			throw error;
+
+			if (processedError instanceof Error) {
+				const message = processedError.message || '';
+				if (processedError.name === 'RequestError' && message.includes('timeout')) {
+					processedError = new Error(`请求超时 (${this.config.timeout}ms)`);
+				} else if (message.includes('Invalid URI')) {
+					processedError = new Error('无效的webhook URL格式');
+				}
+			}
+
+			throw processedError;
 		}
 	}
 

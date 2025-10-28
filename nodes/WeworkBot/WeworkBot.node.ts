@@ -48,6 +48,7 @@ export class WeworkBot implements INodeType {
 
 		// 创建API服务实例
 		const apiService = new WeworkApiService(
+			this,
 			{
 				timeout: 30000,
 				maxRetries: 3,

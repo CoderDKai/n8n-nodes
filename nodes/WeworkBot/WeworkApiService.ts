@@ -1,3 +1,5 @@
+import type { IExecuteFunctions } from 'n8n-workflow';
+
 import { WeworkApiClient } from './ApiClient';
 import { ErrorHandler } from './ErrorHandler';
 import { WeworkLogger, createLogger } from './Logger';
@@ -18,9 +20,13 @@ export class WeworkApiService {
 	private apiClient: WeworkApiClient;
 	private logger: WeworkLogger;
 
-	constructor(config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
+	constructor(executeFunctions: IExecuteFunctions, config?: Partial<ApiClientConfig>, logger?: WeworkLogger) {
 		this.logger = logger || createLogger('ApiService');
-		this.apiClient = new WeworkApiClient(config, this.logger.createChildLogger('Client'));
+		this.apiClient = new WeworkApiClient(
+			executeFunctions,
+			config,
+			this.logger.createChildLogger('Client')
+		);
 	}
 
 	/**

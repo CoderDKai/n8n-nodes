@@ -17,6 +17,8 @@ describe('集成测试', () => {
 	let apiService: WeworkApiService;
 	let logger: ReturnType<typeof createLogger>;
 	let weworkBotNode: WeworkBot;
+	let helpers: { httpRequest: jest.Mock };
+	let executeFunctions: IExecuteFunctions;
 
 	beforeEach(() => {
 		logger = createLogger('IntegrationTest', {
@@ -25,12 +27,21 @@ describe('集成测试', () => {
 			enableStructuredLogging: true,
 		});
 
-		apiService = new WeworkApiService({
-			timeout: 5000,
-			maxRetries: 1,
-			retryDelay: 100,
-			enableLogging: true,
-		}, logger);
+		helpers = {
+			httpRequest: jest.fn().mockRejectedValue(new Error('模拟网络错误')),
+		};
+		executeFunctions = { helpers } as unknown as IExecuteFunctions;
+
+		apiService = new WeworkApiService(
+			executeFunctions,
+			{
+				timeout: 5000,
+				maxRetries: 1,
+				retryDelay: 100,
+				enableLogging: true,
+			},
+			logger
+		);
 
 		weworkBotNode = new WeworkBot();
 	});
@@ -581,9 +592,19 @@ describe('集成测试', () => {
 		});
 
 		it('应该正确处理超时情况', async () => {
+			const timeoutError = new Error('ESOCKETTIMEDOUT');
+			timeoutError.name = 'RequestError';
+			timeoutError.message = 'Error: ESOCKETTIMEDOUT timeout';
+
+			const timeoutHelpers = {
+				httpRequest: jest.fn().mockRejectedValue(timeoutError),
+			};
+			const timeoutExecuteFunctions = { helpers: timeoutHelpers } as unknown as IExecuteFunctions;
+
 			const shortTimeoutApiService = new WeworkApiService(
+				timeoutExecuteFunctions,
 				{
-					timeout: 100, // 很短的超时时间
+					timeout: 100,
 					maxRetries: 1,
 					retryDelay: 50,
 					enableLogging: false,
@@ -599,10 +620,7 @@ describe('集成测试', () => {
 			const messageHandler = MessageHandlerFactory.getHandler(MessageType.TEXT);
 			const { message } = messageHandler.processMessage(inputData);
 
-			const result = await shortTimeoutApiService.sendMessage(
-				'https://httpbin.org/delay/1', // 延迟1秒的测试端点
-				message
-			);
+			const result = await shortTimeoutApiService.sendMessage('https://example.com/webhook', message);
 
 			expect(result.success).toBe(false);
 			expect(result.errorMessage).toBeDefined();
