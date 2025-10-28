@@ -1,35 +1,10 @@
+import type { LogEntry, LoggerConfig } from './types';
+import { LogLevel } from './types';
+
 /**
  * WeWorkBot日志记录器
  * 提供统一的日志记录功能，支持不同级别的日志输出
  */
-
-export enum LogLevel {
-	DEBUG = 0,
-	INFO = 1,
-	WARN = 2,
-	ERROR = 3,
-	NONE = 4,
-}
-
-export interface LogEntry {
-	timestamp: string;
-	level: string;
-	message: string;
-	data?: any;
-	context?: string;
-	executionId?: string;
-	nodeId?: string;
-	workflowId?: string;
-}
-
-export interface LoggerConfig {
-	level: LogLevel;
-	enableConsole: boolean;
-	enableStructuredLogging: boolean;
-	maxLogEntries: number;
-	includeStackTrace: boolean;
-	maskSensitiveData: boolean;
-}
 
 /**
  * 日志记录器类
@@ -444,3 +419,6 @@ export function createLogger(context: string = 'WeworkBot', config?: Partial<Log
  * 全局日志记录器实例
  */
 export const defaultLogger = createLogger();
+
+export { LogLevel } from './types';
+export type { LogEntry, LoggerConfig } from './types';

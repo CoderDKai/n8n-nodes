@@ -13,7 +13,7 @@ describe('ErrorHandler', () => {
 
 			expect(error).toBeInstanceOf(WeworkApiError);
 			expect(error.code).toBe(93000);
-			expect(error.message).toBe('webhook地址无效或已过期，请重新配置群机器人');
+		expect(error.message).toBe('Webhook URL无效或已过期');
 		});
 
 		it('应该从通用错误创建API错误对象', () => {

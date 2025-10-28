@@ -1,47 +1,16 @@
 import { createHash } from 'crypto';
-import { 
-	WeworkApiError, 
-	ValidationResult, 
+import {
+	ValidationResult,
 	MessageHandlerConfig,
 	NewsArticle,
 	TextMessage,
 	MarkdownMessage,
 	ImageMessage,
 	NewsMessage,
-	FileMessage
+	FileMessage,
 } from './types';
 
-/**
- * 错误处理工具类
- */
-export class ErrorHandler {
-	/**
-	 * 处理企业微信API错误
-	 */
-	static handleApiError(error: any): WeworkApiError {
-		const errorCode = error.response?.data?.errcode || -1;
-		const errorMessage = error.response?.data?.errmsg || error.message;
-		
-		switch (errorCode) {
-			case 93000:
-				return new WeworkApiError(errorCode, 'Webhook URL无效或已过期');
-			case 45009:
-				return new WeworkApiError(errorCode, '接口调用超过限制');
-			case 40001:
-				return new WeworkApiError(errorCode, '参数错误');
-			default:
-				return new WeworkApiError(errorCode, errorMessage);
-		}
-	}
-
-	/**
-	 * 判断错误是否应该重试
-	 */
-	static shouldRetry(error: WeworkApiError): boolean {
-		// 网络错误和临时性错误可以重试
-		return error.code === -1 || error.code === 45009;
-	}
-}
+export { ErrorHandler } from './ErrorHandler';
 
 /**
  * 消息验证工具类

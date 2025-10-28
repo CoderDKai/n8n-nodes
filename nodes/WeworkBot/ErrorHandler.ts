@@ -81,6 +81,23 @@ export class ErrorHandler {
 		return new WeworkApiError(code, message);
 	}
 
+	static handleApiError(error: any): WeworkApiError {
+		if (error?.response?.data) {
+			return this.createApiError(error.response.data as WeworkApiResponse);
+		}
+
+		if (error instanceof Error) {
+			return new WeworkApiError(-1, error.message);
+		}
+
+		const message = typeof error?.message === 'string' ? error.message : '未知错误';
+		return new WeworkApiError(-1, message);
+	}
+
+	static shouldRetry(error: WeworkApiError): boolean {
+		return this.isRetryableError(error);
+	}
+
 	/**
 	 * 获取详细的错误消息
 	 */
@@ -91,7 +108,7 @@ export class ErrorHandler {
 
 			// 系统级错误码
 			'-1': '系统繁忙，此时请开发者稍候再试',
-			40001: '获取access_token时AppSecret错误，或者access_token无效。请开发者认真比对AppSecret的正确性，或查看是否正在为恰当的公众号调用接口',
+			40001: '参数错误',
 			40002: '不合法的凭证类型',
 			40003: '不合法的OpenID，请开发者确认OpenID（该用户）是否已关注公众号，或是否是其他公众号的OpenID',
 			40004: '不合法的媒体文件类型',
@@ -219,7 +236,7 @@ export class ErrorHandler {
 			61500: '日期格式错误',
 
 			// WeWorkBot特有错误码
-			93000: 'webhook地址无效或已过期，请重新配置群机器人',
+			93000: 'Webhook URL无效或已过期',
 			300001: '缺少参数',
 			300002: 'https请求',
 			300003: 'userid错误',
@@ -254,7 +271,7 @@ export class ErrorHandler {
 
 		// 如果没有自定义消息，使用原始消息
 		if (errmsg && errmsg.trim()) {
-			return `企业微信API错误 (${errcode}): ${errmsg}`;
+			return errmsg.trim();
 		}
 
 		// 如果原始消息也为空，返回通用错误消息
