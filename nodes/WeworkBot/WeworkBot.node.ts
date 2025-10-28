@@ -157,6 +157,7 @@ export class WeworkBot implements INodeType {
 						// 添加原始输入数据用于调试
 						input: inputData,
 					} as any,
+					pairedItem: { item: itemIndex },
 				};
 
 				// 如果发送失败，根据配置决定是否抛出错误
@@ -189,7 +190,6 @@ export class WeworkBot implements INodeType {
 
 				// 处理执行错误
 				if (this.continueOnFail()) {
-					// 如果设置了继续执行，返回错误信息
 					const errorResult: NodeOutputData = {
 						success: false,
 						errorCode: -1,
@@ -200,6 +200,7 @@ export class WeworkBot implements INodeType {
 
 					returnData.push({
 						json: errorResult as any,
+						pairedItem: { item: itemIndex },
 					});
 				} else {
 					// 否则抛出错误
