@@ -124,22 +124,17 @@ export const WeworkBotNodeDescription: INodeTypeDescription = {
 			placeholder: '# 标题\n\n**粗体文本**\n\n[链接](https://example.com)',
 			description: 'Markdown格式的消息内容，支持标准Markdown语法，最大长度4096字符',
 		},
-		{
-			displayName: '图片数据源',
-			name: 'imageSource',
-			type: 'options',
-			options: [
-				{
-					name: 'Base64编码',
-					value: 'base64',
-					description: '直接提供图片的base64编码数据',
-				},
-				{
-					name: '图片URL',
-					value: 'url',
-					description: '提供图片的URL地址，系统会自动下载并转换',
-				},
-			],
+			{
+				displayName: '图片数据源',
+				name: 'imageSource',
+				type: 'options',
+				options: [
+					{
+						name: 'Base64编码',
+						value: 'base64',
+						description: '直接提供图片的base64编码数据',
+					},
+				],
 			displayOptions: {
 				show: {
 					messageType: ['image'],
@@ -167,21 +162,18 @@ export const WeworkBotNodeDescription: INodeTypeDescription = {
 			placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
 			description: '图片的base64编码数据（不包含data:image前缀），支持jpg、png格式，最大2MB',
 		},
-		{
-			displayName: '图片URL',
-			name: 'imageUrl',
-			type: 'string',
-			displayOptions: {
-				show: {
-					messageType: ['image'],
-					imageSource: ['url'],
+			{
+				displayName: '图片URL',
+				name: 'imageUrl',
+				type: 'hidden',
+				displayOptions: {
+					show: {
+						messageType: ['image'],
+					},
 				},
-			},
 			default: '',
-			required: true,
-			placeholder: 'https://example.com/image.jpg',
-			description: '图片的URL地址，支持jpg、png格式，最大2MB',
-		},
+			description: '图片URL选项已禁用',
+			},
 		{
 			displayName: '文章列表',
 			name: 'articles',

@@ -96,12 +96,7 @@ export class WeworkBot implements INodeType {
 						break;
 
 					case MessageType.IMAGE:
-						const imageSource = this.getNodeParameter('imageSource', itemIndex) as string;
-						if (imageSource === 'base64') {
-							inputData.imageBase64 = this.getNodeParameter('imageBase64', itemIndex) as string;
-						} else {
-							inputData.imageUrl = this.getNodeParameter('imageUrl', itemIndex) as string;
-						}
+						inputData.imageBase64 = this.getNodeParameter('imageBase64', itemIndex) as string;
 						break;
 
 					case MessageType.NEWS:
