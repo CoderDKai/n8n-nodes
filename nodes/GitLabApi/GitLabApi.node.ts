@@ -144,6 +144,12 @@ export class GitLabApi implements INodeType {
 								);
 							}
 						}
+					} else {
+						throw new NodeOperationError(
+							this.getNode(),
+							`不支持的项目操作: ${operation}`,
+							{ itemIndex: i }
+						);
 					}
 				} else if (resource === 'mergeRequest') {
 					if (operation === 'getAll') {
@@ -294,7 +300,19 @@ export class GitLabApi implements INodeType {
 								);
 							}
 						}
+					} else {
+						throw new NodeOperationError(
+							this.getNode(),
+							`不支持的合并请求操作: ${operation}`,
+							{ itemIndex: i }
+						);
 					}
+				} else {
+					throw new NodeOperationError(
+						this.getNode(),
+						`不支持的资源类型: ${resource}`,
+						{ itemIndex: i }
+					);
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
